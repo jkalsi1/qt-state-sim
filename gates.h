@@ -6,8 +6,6 @@
 
 using Matrix2x2 = std::array<std::array<Amplitude, 2>, 2>;
 
-using Matrix4x4 = std::array<std::array<Amplitude, 4>, 4>;
-
 using namespace std::complex_literals;
 
 // Standard single-qubit gates
