@@ -1,10 +1,14 @@
 #pragma once
 #include <array>
 #include "state.h"
+#include <cmath>
+#include <complex>
 
 using Matrix2x2 = std::array<std::array<Amplitude, 2>, 2>;
 
 using Matrix4x4 = std::array<std::array<Amplitude, 4>, 4>;
+
+using namespace std::complex_literals;
 
 // Standard single-qubit gates
 namespace Gate
@@ -87,5 +91,24 @@ void apply_cnot(QuantumState &state, int control, int target)
 
         // 'flip' the bit, by swapping the amplitude of its opposite
         std::swap(state.amplitudes[i], state.amplitudes[j]);
+    }
+}
+
+void apply_phase(QuantumState &state, double theta, int target)
+{
+    int n = state.num_qubits;
+    if (target < 0 || target >= n)
+        throw std::out_of_range("Target qubit out of range");
+
+    int target_qubit_index = 1 << target;
+
+    Amplitude phase_factor{std::cos(theta), std::sin(theta)};
+
+    for (int i = 0; i < state.amplitudes.size(); i++)
+    {
+        if (!(i & target_qubit_index))
+            continue;
+
+        state.amplitudes[i] = state.amplitudes[i].operator*(phase_factor);
     }
 }

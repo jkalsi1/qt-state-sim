@@ -188,6 +188,52 @@ void test_measure_definite_state()
     check(outcome == 0, "measure of |0> always returns 0");
 }
 
+void test_phase_leaves_zero_unchanged()
+{
+    QuantumState q(1);
+    apply_phase(q, M_PI / 2, 0);
+    check(approx_eq_complex(q.amplitudes[0], Amplitude{1, 0}), "P(pi/2): |0> amplitude unchanged");
+}
+
+void test_phase_pi_equals_z_gate()
+{
+    QuantumState q1(1);
+    QuantumState q2(1);
+    apply_gate(q1, Gate::X, 0);
+    apply_gate(q2, Gate::X, 0);
+    apply_gate(q1, Gate::Z, 0);
+    apply_phase(q2, M_PI, 0);
+    check(approx_eq_complex(q1.amplitudes[1], q2.amplitudes[1]), "P(pi) == Z on |1>");
+}
+
+void test_phase_pi_over_2_is_s_gate()
+{
+    QuantumState q(1);
+    apply_gate(q, Gate::X, 0);
+    apply_phase(q, M_PI / 2, 0);
+    check(approx_eq_complex(q.amplitudes[1], Amplitude{0, 1}), "P(pi/2): |1> amplitude is i");
+}
+
+void test_phase_does_not_change_probabilities()
+{
+    QuantumState q(1);
+    apply_gate(q, Gate::H, 0);
+    apply_phase(q, M_PI / 3, 0);
+    check(approx_eq(q.probability(0), 0.5), "P(pi/3) after H: prob 0.5 at |0>");
+    check(approx_eq(q.probability(1), 0.5), "P(pi/3) after H: prob 0.5 at |1>");
+}
+
+void test_phase_zero_is_identity()
+{
+    QuantumState q(1);
+    apply_gate(q, Gate::H, 0);
+    Amplitude before_0 = q.amplitudes[0];
+    Amplitude before_1 = q.amplitudes[1];
+    apply_phase(q, 0.0, 0);
+    check(approx_eq_complex(q.amplitudes[0], before_0), "P(0): state unchanged");
+    check(approx_eq_complex(q.amplitudes[1], before_1), "P(0): state unchanged");
+}
+
 // ---- run all ----
 
 int main()
@@ -216,6 +262,12 @@ int main()
     test_measure_returns_valid_index();
     test_measure_collapses_state();
     test_measure_definite_state();
+
+    test_phase_leaves_zero_unchanged();
+    test_phase_pi_equals_z_gate();
+    test_phase_pi_over_2_is_s_gate();
+    test_phase_does_not_change_probabilities();
+    test_phase_zero_is_identity();
 
     return 0;
 }
