@@ -15,7 +15,7 @@ public:
     std::vector<Amplitude> amplitudes;
     int num_qubits;
 
-    explicit QuantumState(int n) : num_qubits(n), amplitudes(1 << n, {0, 0})
+    explicit QuantumState(int n) : amplitudes(1 << n, {0, 0}), num_qubits(n)
     {
         amplitudes[0] = {1.0, 0};
     }
