@@ -2,6 +2,7 @@
 #include <cmath>
 #include "state.h"
 #include "gates.h"
+#include "circuit.h"
 
 // ---- helpers ----
 
@@ -234,6 +235,110 @@ void test_phase_zero_is_identity()
     check(approx_eq_complex(q.amplitudes[1], before_1), "P(0): state unchanged");
 }
 
+// ---- circuit tests ----
+
+void test_circuit_x_flips_to_one()
+{
+    QuantumCircuit c(1);
+    c.x(0);
+    c.run();
+    int outcome = c.measure();
+    check(outcome == 1, "circuit X: measures |1>");
+}
+
+void test_circuit_x_twice_returns_to_zero()
+{
+    QuantumCircuit c(1);
+    c.x(0);
+    c.x(0);
+    c.run();
+    int outcome = c.measure();
+    check(outcome == 0, "circuit X twice: measures |0>");
+}
+
+void test_circuit_h_superposition()
+{
+    // run many times and check both outcomes appear
+    int zeros = 0, ones = 0;
+    for (int i = 0; i < 100; i++)
+    {
+        QuantumCircuit c(1);
+        c.h(0);
+        c.run();
+        int outcome = c.measure();
+        if (outcome == 0)
+            zeros++;
+        else
+            ones++;
+    }
+    check(zeros > 30 && ones > 30, "circuit H: both outcomes appear");
+}
+
+void test_circuit_bell_state()
+{
+    QuantumCircuit c(2);
+    c.h(0);
+    c.cnot(0, 1);
+    c.run();
+    int outcome = c.measure();
+    check(outcome == 0 || outcome == 3, "bell state: measures |00> or |11> only");
+}
+
+void test_circuit_bell_state_never_measures_01_or_10()
+{
+    int invalid = 0;
+    for (int i = 0; i < 100; i++)
+    {
+        QuantumCircuit c(2);
+        c.h(0);
+        c.cnot(0, 1);
+        c.run();
+        int outcome = c.measure();
+        if (outcome == 1 || outcome == 2)
+            invalid++;
+    }
+    check(invalid == 0, "bell state: never measures |01> or |10>");
+}
+
+void test_circuit_measure_before_run_is_zero()
+{
+    QuantumCircuit c(1);
+    c.x(0);
+    int outcome = c.measure();
+    check(outcome == 0, "measure before run: state is still |0>");
+}
+
+void test_circuit_phase_does_not_change_probabilities()
+{
+    QuantumCircuit c(1);
+    c.h(0);
+    c.phase(M_PI / 3, 0);
+    c.run();
+    int zeros = 0, ones = 0;
+    for (int i = 0; i < 100; i++)
+    {
+        QuantumCircuit c2(1);
+        c2.h(0);
+        c2.phase(M_PI / 3, 0);
+        c2.run();
+        int outcome = c2.measure();
+        if (outcome == 0)
+            zeros++;
+        else
+            ones++;
+    }
+    check(zeros > 30 && ones > 30, "circuit P: probabilities unchanged after phase");
+}
+
+void test_circuit_z_on_zero_unchanged()
+{
+    QuantumCircuit c(1);
+    c.z(0);
+    c.run();
+    int outcome = c.measure();
+    check(outcome == 0, "circuit Z on |0>: still measures |0>");
+}
+
 // ---- run all ----
 
 int main()
@@ -268,6 +373,15 @@ int main()
     test_phase_pi_over_2_is_s_gate();
     test_phase_does_not_change_probabilities();
     test_phase_zero_is_identity();
+
+    test_circuit_x_flips_to_one();
+    test_circuit_x_twice_returns_to_zero();
+    test_circuit_h_superposition();
+    test_circuit_bell_state();
+    test_circuit_bell_state_never_measures_01_or_10();
+    test_circuit_measure_before_run_is_zero();
+    test_circuit_phase_does_not_change_probabilities();
+    test_circuit_z_on_zero_unchanged();
 
     return 0;
 }

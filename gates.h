@@ -69,6 +69,11 @@ void apply_gate(QuantumState &state, const Matrix2x2 &gate, int target)
 
 void apply_cnot(QuantumState &state, int control, int target)
 {
+    if (control == target)
+    {
+        throw std::runtime_error("Control qubit must not be the equal to target qubit");
+    }
+
     int n = state.num_qubits;
     if (target < 0 || target >= n)
         throw std::out_of_range("Target qubit out of range");
