@@ -74,6 +74,11 @@ public:
         operations.push_back(op);
     }
 
+    void flip_amplitude(int index)
+    {
+        state.amplitudes[index] = state.amplitudes[index] * Amplitude{-1, 0};
+    }
+
     int measure()
     {
         return this->state.measure();
@@ -123,6 +128,41 @@ public:
         this->has_run = true;
     }
 
+    void reset()
+    {
+        state = QuantumState(state.num_qubits);
+        this->has_run = false;
+        this->operations = {};
+    }
+
+    void run_and_reset()
+    {
+        for (Operation op : operations)
+        {
+            try
+            {
+                switch (op.type)
+                {
+                case OperationType::SingleGate:
+                    apply_gate(state, std::get<Matrix2x2>(op.args[0]), std::get<int>(op.args[1]));
+                    break;
+                case OperationType::CNOT:
+                    apply_cnot(state, std::get<int>(op.args[0]), std::get<int>(op.args[1]));
+                    break;
+                case OperationType::PHASE:
+                    apply_phase(state, std::get<double>(op.args[0]), std::get<int>(op.args[1]));
+                    break;
+                }
+            }
+            catch (const std::bad_variant_access &e)
+            {
+                std::cout << "Error: bad argument type — " << e.what() << "\n";
+            }
+        }
+        operations.clear();
+        has_run = false;
+    }
+
     void print_circuit()
     {
         for (Operation op : this->operations)
@@ -142,5 +182,15 @@ public:
                 break;
             }
         }
+    }
+
+    Amplitude get_amplitude(int index)
+    {
+        return state.amplitudes[index];
+    }
+
+    void set_amplitude(int index, Amplitude a)
+    {
+        state.amplitudes[index] = a;
     }
 };
