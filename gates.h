@@ -71,7 +71,7 @@ void apply_cnot(QuantumState &state, int control, int target)
 {
     if (control == target)
     {
-        throw std::runtime_error("Control qubit must not be the equal to target qubit");
+        throw std::invalid_argument("Control qubit must not be the equal to target qubit");
     }
 
     int n = state.num_qubits;

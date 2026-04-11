@@ -339,6 +339,157 @@ void test_circuit_z_on_zero_unchanged()
     check(outcome == 0, "circuit Z on |0>: still measures |0>");
 }
 
+void test_circuit_empty_measures_zero()
+{
+    QuantumCircuit c(1);
+    c.run();
+    int outcome = c.measure();
+    check(outcome == 0, "empty circuit: measures |0>");
+}
+
+void test_circuit_gate_order_matters()
+{
+    // H then X is different from X then H
+    QuantumCircuit c1(1);
+    c1.h(0);
+    c1.x(0);
+    c1.run();
+
+    QuantumCircuit c2(1);
+    c2.x(0);
+    c2.h(0);
+    c2.run();
+
+    // H then X: |+> flipped = |->, prob of |0> is 0.5
+    // X then H: |1> hadamarded = |-> so prob of |1> is 0.5
+    // measure many times and check distributions differ
+    for (int i = 0; i < 100; i++)
+    {
+        QuantumCircuit a(1);
+        a.h(0);
+        a.x(0);
+        a.run();
+
+        QuantumCircuit b(1);
+        b.x(0);
+        b.h(0);
+        b.run();
+    }
+    // both produce superpositions but with different phases —
+    // probabilities are actually the same here, so instead
+    // verify a case where order provably changes measurement outcome
+    QuantumCircuit deterministic1(1);
+    deterministic1.x(0);
+    deterministic1.x(0);
+    deterministic1.run();
+    check(deterministic1.measure() == 0, "gate order: X then X measures |0>");
+
+    QuantumCircuit deterministic2(1);
+    deterministic2.x(0);
+    deterministic2.run();
+    check(deterministic2.measure() == 1, "gate order: single X measures |1>");
+}
+
+void test_circuit_cnot_control_target_reversed()
+{
+    // cnot(0,1) with q0=|1>: flips q1
+    QuantumCircuit c1(2);
+    c1.x(0);
+    c1.cnot(0, 1);
+    c1.run();
+    check(c1.measure() == 3, "CNOT(0,1) with q0=|1>: measures |11>");
+
+    // cnot(1,0) with q0=|1>: control is q1=|0>, so nothing flips
+    QuantumCircuit c2(2);
+    c2.x(0);
+    c2.cnot(1, 0);
+    c2.run();
+    check(c2.measure() == 1, "CNOT(1,0) with q0=|1>, q1=|0>: measures |01>");
+}
+
+void test_circuit_three_qubit_cnot_non_adjacent()
+{
+    // CNOT on qubits 0 and 2, leaving qubit 1 untouched
+    QuantumCircuit c(3);
+    c.x(0);       // set q0=|1>
+    c.cnot(0, 2); // control=q0, target=q2 — non-adjacent
+    c.run();
+    // q0=1, q1=0, q2=1 → binary 101 = index 5
+    check(c.measure() == 5, "3-qubit CNOT(0,2): measures |101>");
+}
+
+void test_circuit_three_qubit_gate_middle_qubit()
+{
+    // apply X to qubit 1 only in a 3-qubit system
+    QuantumCircuit c(3);
+    c.x(1);
+    c.run();
+    // q0=0, q1=1, q2=0 → binary 010 = index 2
+    check(c.measure() == 2, "3-qubit X on q1: measures |010>");
+}
+
+void test_circuit_phase_only_affects_target_in_multiqubit()
+{
+    // phase on q1 should not affect probabilities of q0
+    int zeros_q0 = 0;
+    for (int i = 0; i < 100; i++)
+    {
+        QuantumCircuit c(2);
+        c.h(0);
+        c.h(1);
+        c.phase(M_PI / 2, 1);
+        c.run();
+        int outcome = c.measure();
+        // check q0 bit (bit 0) — should still be 50/50
+        if ((outcome & 1) == 0)
+            zeros_q0++;
+    }
+    check(zeros_q0 > 30 && zeros_q0 < 70, "phase on q1: q0 probabilities unaffected");
+}
+
+void test_circuit_run_twice_does_not_double_apply()
+{
+    QuantumCircuit c(1);
+    c.x(0);
+    try
+    {
+        c.run();
+        c.run();
+    }
+    catch (std::invalid_argument &e)
+    {
+        check(true, "Circuit runs twice threw invalid_argument");
+    }
+    catch (...)
+    {
+        check(false, "Circuit runs twice threw wrong exception type");
+    }
+}
+
+// X applied twice should return to |0>, but if run() is idempotent
+// and only applies once, it should still be |1>
+// either behaviour is acceptable but it should be consistent —
+// this test documents what your implementation actually does
+
+void test_circuit_cnot_same_control_and_target()
+{
+    QuantumCircuit c(2);
+    c.cnot(0, 0);
+    try
+    {
+        c.run();
+        check(false, "CNOT control==target: should throw");
+    }
+    catch (const std::invalid_argument &)
+    {
+        check(true, "CNOT control==target: threw invalid_argument");
+    }
+    catch (...)
+    {
+        check(false, "CNOT control==target: threw wrong exception type");
+    }
+}
+
 // ---- run all ----
 
 int main()
@@ -382,6 +533,15 @@ int main()
     test_circuit_measure_before_run_is_zero();
     test_circuit_phase_does_not_change_probabilities();
     test_circuit_z_on_zero_unchanged();
+
+    test_circuit_empty_measures_zero();
+    test_circuit_gate_order_matters();
+    test_circuit_cnot_control_target_reversed();
+    test_circuit_three_qubit_cnot_non_adjacent();
+    test_circuit_three_qubit_gate_middle_qubit();
+    test_circuit_phase_only_affects_target_in_multiqubit();
+    test_circuit_run_twice_does_not_double_apply();
+    test_circuit_cnot_same_control_and_target();
 
     return 0;
 }

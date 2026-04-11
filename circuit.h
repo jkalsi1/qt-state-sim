@@ -25,6 +25,8 @@ class QuantumCircuit
     std::vector<Operation> operations;
 
 private:
+    bool has_run = false;
+
     void add_single_gate(int target, Matrix2x2 gate)
     {
         Operation op;
@@ -79,6 +81,10 @@ public:
 
     void run()
     {
+        if (this->has_run)
+        {
+            throw std::invalid_argument("Error: cannot run a circuit twice.");
+        }
         for (Operation op : this->operations)
         {
             try
@@ -114,6 +120,7 @@ public:
                 std::cout << " — " << e.what() << "\n";
             }
         }
+        this->has_run = true;
     }
 
     void print_circuit()
