@@ -15,7 +15,7 @@ public:
     std::vector<Amplitude> amplitudes;
     int num_qubits;
 
-    explicit QuantumState(int n) : amplitudes(1 << n, {0, 0}), num_qubits(n)
+    explicit QuantumState(int n) : amplitudes(n > 0 && n < 31 ? (size_t(1) << n) : throw std::invalid_argument("num_qubits must be between 1 and 30"), {0, 0}), num_qubits(n)
     {
         amplitudes[0] = {1.0, 0};
     }
